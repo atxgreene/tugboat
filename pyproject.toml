@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tugboat"
+version = "0.1.0"
+description = "A tiny, declarative routing layer for agent harnesses. Four axes, one decision, markdown policy, stdlib only."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Austin Greene" },
+]
+keywords = [
+    "agent",
+    "llm",
+    "routing",
+    "harness",
+    "orchestration",
+    "subagent",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []  # stdlib only
+
+[project.optional-dependencies]
+dev = []  # tests use unittest from stdlib
+
+[project.urls]
+Homepage    = "https://github.com/atxgreene/tugboat"
+Issues      = "https://github.com/atxgreene/tugboat/issues"
+"Source"    = "https://github.com/atxgreene/tugboat"
+
+[project.scripts]
+tugboat = "tugboat.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["tugboat*"]
+exclude = ["tests*", "examples*"]
