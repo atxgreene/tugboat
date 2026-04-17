@@ -1,4 +1,25 @@
-# Tugboat
+<p align="center">
+  <img src="docs/assets/tugboat-avatar.gif" width="240" alt="Tugboat — 8-bit animated logo" />
+</p>
+
+<h1 align="center">Tugboat</h1>
+
+<p align="center">
+  <em>A tiny, declarative routing layer for agent harnesses.<br/>
+  Four axes, one decision, markdown policy, stdlib only.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/atxgreene/tugboat/actions/workflows/tests.yml"><img src="https://github.com/atxgreene/tugboat/actions/workflows/tests.yml/badge.svg" alt="tests"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"/></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="python"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/deps-stdlib%20only-green.svg" alt="stdlib only"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-34%20%E2%9C%93-brightgreen.svg" alt="34 tests"/></a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/tugboat-demo.gif" width="720" alt="Tugboat explain demo" />
+</p>
 
 > "The harness is the product."
 
@@ -31,7 +52,7 @@ No install. It's stdlib-only Python 3.10+.
 
 ```bash
 cd tugboat
-python -m unittest discover tests        # 24 tests, < 30ms
+python -m unittest discover tests        # 34 tests, < 30ms
 python examples/basic_usage.py           # full end-to-end demo
 ```
 
@@ -263,6 +284,6 @@ and a `name` property. Bring your own.
 
 ## Status
 
-MVP. 24 unit tests green. Single-turn execution, no ReAct loop yet. Policy
+MVP. 34 unit tests green. Single-turn execution, no ReAct loop yet. Policy
 supports `and`; no `or` yet (add when needed). Built for the openclaws fleet
 and the BEN navigator persona.

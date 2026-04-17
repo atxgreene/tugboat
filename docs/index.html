@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tugboat — declarative routing for agent harnesses</title>
+<meta name="description" content="A tiny, declarative routing layer for agent harnesses. Four axes, one decision, markdown policy, stdlib only." />
+<meta property="og:title" content="Tugboat — declarative routing for agent harnesses" />
+<meta property="og:description" content="Four axes, one decision, markdown policy, stdlib only. ~1,200 lines of Python." />
+<meta property="og:image" content="assets/tugboat-avatar.png" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/png" href="assets/tugboat-avatar-128.png" />
+<style>
+  :root {
+    --bg:        #0b1220;
+    --bg-elev:   #0f1b30;
+    --bg-card:   #122239;
+    --border:    #1e3555;
+    --fg:        #e6edf3;
+    --fg-dim:    #94a3b8;
+    --accent:    #4fa3d9;   /* water blue */
+    --accent-2:  #d62828;   /* hull red */
+    --accent-3:  #ffc107;   /* smokestack gold */
+    --good:      #7ee787;
+    --code-bg:   #0d1117;
+    --code-kw:   #ff7b72;
+    --code-str:  #ffd46c;
+    --code-fn:   #d2a8ff;
+    --code-com:  #8b949e;
+    --code-key:  #ffa657;
+    --radius:    14px;
+    --shadow:    0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  code, pre, .mono { font-family: "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* layout */
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* top nav */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(11,18,32,.8);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .inner {
+    max-width: 1080px; margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; color: var(--fg);
+  }
+  nav .brand img { width: 32px; height: auto; image-rendering: pixelated; }
+  nav .links { margin-left: auto; display: flex; gap: 20px; }
+  nav .links a { color: var(--fg-dim); font-size: 14px; }
+  nav .links a:hover { color: var(--fg); text-decoration: none; }
+  nav .github-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: var(--fg);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* hero */
+  .hero { padding: 80px 0 60px; text-align: center; }
+  .hero .logo {
+    width: 280px; height: auto;
+    image-rendering: pixelated;
+    margin: 0 auto 24px;
+    display: block;
+    filter: drop-shadow(0 8px 20px rgba(214, 40, 40, 0.15));
+  }
+  .hero h1 {
+    font-size: clamp(40px, 7vw, 72px);
+    margin: 0 0 16px;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+  }
+  .hero .tagline {
+    font-size: clamp(18px, 2.5vw, 22px);
+    color: var(--fg-dim);
+    max-width: 640px;
+    margin: 0 auto 36px;
+  }
+  .hero .tagline em {
+    color: var(--fg);
+    font-style: normal;
+    font-weight: 500;
+  }
+  .cta-row {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 15px;
+    border: 1px solid transparent;
+    transition: transform .1s ease, background .1s ease;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn-primary {
+    background: var(--accent);
+    color: #081828;
+  }
+  .btn-primary:hover { background: #6fb4e2; }
+  .btn-secondary {
+    background: var(--bg-card);
+    color: var(--fg);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-elev); }
+
+  .pill-row {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    margin-top: 24px; font-size: 13px;
+  }
+  .pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 999px;
+    color: var(--fg-dim);
+  }
+  .pill.good { border-color: rgba(126,231,135,.4); color: var(--good); }
+
+  /* thesis callout */
+  .thesis {
+    max-width: 780px;
+    margin: 60px auto;
+    padding: 32px 36px;
+    background: linear-gradient(180deg, rgba(79,163,217,.08), transparent);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    font-size: 17px;
+  }
+  .thesis strong { color: var(--accent); }
+
+  /* section */
+  section { padding: 60px 0; }
+  section h2 {
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+  section .sub {
+    color: var(--fg-dim);
+    margin: 0 0 36px;
+    font-size: 17px;
+    max-width: 680px;
+  }
+
+  /* four axes grid */
+  .axes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .axis {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: border-color .15s ease;
+  }
+  .axis:hover { border-color: var(--accent); }
+  .axis .icon {
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    background: var(--bg-elev);
+    border-radius: 8px;
+    font-size: 20px;
+    margin-bottom: 14px;
+    color: var(--accent);
+  }
+  .axis .icon svg { display: block; }
+  .axis h3 { margin: 0 0 8px; font-size: 18px; color: var(--fg); }
+  .axis p  { margin: 0; color: var(--fg-dim); font-size: 14px; }
+
+  /* stack diagram */
+  .stack {
+    display: flex; flex-direction: column; gap: 14px;
+    max-width: 680px; margin: 0 auto;
+  }
+  .stack .layer {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    text-align: left;
+    position: relative;
+  }
+  .stack .layer.routing {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(79,163,217,.12), var(--bg-card));
+  }
+  .stack .layer .title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--fg-dim);
+    margin-bottom: 4px;
+  }
+  .stack .layer.routing .title { color: var(--accent); }
+  .stack .layer h4 { margin: 0 0 6px; font-size: 19px; }
+  .stack .layer p { margin: 0; color: var(--fg-dim); font-size: 14px; }
+  .stack .arrow { text-align: center; color: var(--fg-dim); font-size: 14px; }
+
+  /* demo gif */
+  .demo {
+    max-width: 840px; margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .demo img { display: block; width: 100%; height: auto; }
+
+  /* code block */
+  .code-card {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .code-card .filebar {
+    background: var(--bg-card);
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--fg-dim);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .code-card .filebar .dots {
+    display: flex; gap: 6px;
+  }
+  .code-card .filebar .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .code-card .filebar .dot.r { background: #ff5f56; }
+  .code-card .filebar .dot.y { background: #ffbd2e; }
+  .code-card .filebar .dot.g { background: #27c93f; }
+  .code-card pre {
+    margin: 0;
+    padding: 22px 24px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--fg);
+  }
+  .tok-kw  { color: var(--code-kw); }
+  .tok-str { color: var(--code-str); }
+  .tok-fn  { color: var(--code-fn); }
+  .tok-com { color: var(--code-com); font-style: italic; }
+  .tok-key { color: var(--code-key); }
+  .tok-blu { color: #79c0ff; }
+
+  /* split */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .split { grid-template-columns: 1fr; }
+  }
+
+  /* reasons list */
+  .reasons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .reason {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+  .reason .num {
+    display: inline-block;
+    width: 28px; height: 28px;
+    background: var(--accent);
+    color: #081828;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 28px;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .reason h4 { margin: 0 0 6px; font-size: 17px; }
+  .reason p { margin: 0; color: var(--fg-dim); font-size: 14px; }
+
+  /* footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 0 80px;
+    color: var(--fg-dim);
+    font-size: 14px;
+    text-align: center;
+  }
+  footer .marks { margin-top: 8px; font-size: 12px; color: var(--fg-dim); opacity: .7; }
+
+  /* selection */
+  ::selection { background: rgba(79,163,217,.35); }
+
+  /* subtle water ripple behind hero */
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(79,163,217,.12), transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .hero-wrap { position: relative; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <a href="#top" class="brand">
+      <img src="assets/tugboat-avatar.gif" alt=""/>
+      <span>Tugboat</span>
+    </a>
+    <div class="links">
+      <a href="#four-axes">Four axes</a>
+      <a href="#stack">Stack</a>
+      <a href="#policy">Policy</a>
+      <a href="#why">Why</a>
+      <a class="github-btn" href="https://github.com/atxgreene/tugboat">GitHub →</a>
+    </div>
+  </div>
+</nav>
+
+<div id="top" class="hero-wrap">
+  <div class="hero-bg"></div>
+  <section class="hero">
+    <div class="container">
+      <img class="logo" src="assets/tugboat-avatar.gif" alt="Tugboat 8-bit animated logo" />
+      <h1>Tugboat</h1>
+      <p class="tagline">
+        A tiny, declarative <em>routing layer</em> for agent harnesses.<br/>
+        Four axes, one decision, markdown policy, stdlib only.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/atxgreene/tugboat#install">Get started →</a>
+        <a class="btn btn-secondary" href="https://github.com/atxgreene/tugboat">View on GitHub</a>
+      </div>
+      <div class="pill-row">
+        <span class="pill good">34 tests green</span>
+        <span class="pill">~1,200 lines</span>
+        <span class="pill">zero deps</span>
+        <span class="pill">Python 3.10+</span>
+        <span class="pill">MIT</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="container">
+  <div class="thesis">
+    At a fixed model, <strong>the routing layer is where most of the performance delta lives</strong>.
+    The central thesis — distilled from the Meta-Harness paper, Peter Pang's harness-engineering
+    write-up, and Anthropic's own Claude Code post-mortems — is that the harness is the product.
+    Tugboat makes that layer <strong>explicit, small, testable, and owned by you</strong>.
+  </div>
+</div>
+
+<section id="four-axes">
+  <div class="container">
+    <h2>One decision, four axes.</h2>
+    <p class="sub">
+      Every turn goes through the same deterministic function:
+      <code>route(turn, policy) → decision</code>. The decision spans the four
+      things every agent actually has to answer.
+    </p>
+    <div class="axes">
+      <div class="axis">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M19 3h-4"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/><path d="M15 21h4a2 2 0 0 0 2-2v-4"/><path d="M21 9V5a2 2 0 0 0-2-2"/></svg>
+        </div>
+        <h3>Memory</h3>
+        <p>Which slices to load, with a token budget. Identity is always in.</p>
+      </div>
+      <div class="axis">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M5 21v-2a4 4 0 0 1 4-4h0"/><path d="M13 21v-2a4 4 0 0 1 4-4h0"/></svg>
+        </div>
+        <h3>Subagent</h3>
+        <p>Whether to delegate, to which scoped spec, and how to merge its side-effects.</p>
+      </div>
+      <div class="axis">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <h3>Skill</h3>
+        <p>Which tools are in scope, which are blocked. External-action gates live here.</p>
+      </div>
+      <div class="axis">
+        <div class="icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <h3>Model</h3>
+        <p>Which engine and model id to call. Local by default, cloud on long context.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>See it route.</h2>
+    <p class="sub">
+      <code>tug.explain(turn)</code> prints what the router <em>would</em> do
+      without running anything. Good for code review and postmortems.
+    </p>
+    <div class="demo">
+      <img src="assets/tugboat-demo.gif" alt="Animated demo of tugboat explain showing two routing decisions" />
+    </div>
+  </div>
+</section>
+
+<section id="policy">
+  <div class="container">
+    <h2>The policy file IS the router.</h2>
+    <p class="sub">
+      Plain markdown. No YAML, no DSL, no code. Rules fire in file order. Later rules win.
+      Two invariants the policy cannot override: external actions always confirm, and identity memory is always loaded.
+    </p>
+    <div class="split">
+      <div class="code-card">
+        <div class="filebar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>ben_policy.md</span></div>
+<pre><span class="tok-blu"># Defaults</span>
+- <span class="tok-key">model.engine</span>: ollama
+- <span class="tok-key">model.model</span>: qwen2.5:14b-instruct
+- <span class="tok-key">memory.budget_tokens</span>: 2000
+- <span class="tok-key">memory.slices</span>: [identity, recent_daily]
+
+<span class="tok-blu">## Rule: local for drafting</span>
+<span class="tok-com">when:</span> task_class == drafting
+<span class="tok-com">then:</span>
+  - <span class="tok-key">model.engine</span> = ollama
+  - <span class="tok-key">model.model</span> = qwen2.5:14b-instruct
+
+<span class="tok-blu">## Rule: cloud fallback for long context</span>
+<span class="tok-com">when:</span> context_tokens &gt; 8000
+<span class="tok-com">then:</span>
+  - <span class="tok-key">model.engine</span> = cloud
+  - <span class="tok-key">model.model</span> = claude-opus-4-6
+  - <span class="tok-key">memory.budget_tokens</span> = 6000
+
+<span class="tok-blu">## Rule: delegate research</span>
+<span class="tok-com">when:</span> task_class == research
+<span class="tok-com">then:</span>
+  - <span class="tok-key">subagent.delegate</span> = true
+  - <span class="tok-key">subagent.spec_name</span> = researcher
+  - <span class="tok-key">subagent.merge_strategy</span> = merge_memory</pre>
+      </div>
+      <div class="code-card">
+        <div class="filebar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>basic_usage.py</span></div>
+<pre><span class="tok-kw">from</span> tugboat <span class="tok-kw">import</span> Tugboat, Turn
+<span class="tok-kw">from</span> tugboat.channels <span class="tok-kw">import</span> (
+    InMemoryMemoryChannel,
+    DictSkillChannel,
+    MultiEngineModelChannel,
+)
+<span class="tok-kw">from</span> tugboat.engines <span class="tok-kw">import</span> MockEngine
+<span class="tok-kw">from</span> tugboat.policy  <span class="tok-kw">import</span> load_policy
+
+policy = <span class="tok-fn">load_policy</span>(<span class="tok-str">"examples/ben_policy.md"</span>)
+tug    = <span class="tok-fn">Tugboat</span>(
+    policy=policy,
+    memory=<span class="tok-fn">InMemoryMemoryChannel</span>(<span class="tok-com">...</span>),
+    skills=<span class="tok-fn">DictSkillChannel</span>({<span class="tok-str">"formatter"</span>: fmt}),
+    models=<span class="tok-fn">MultiEngineModelChannel</span>({
+        <span class="tok-str">"ollama"</span>: <span class="tok-fn">MockEngine</span>(),
+        <span class="tok-str">"cloud"</span>:  <span class="tok-fn">MockEngine</span>(),
+    }),
+)
+
+<span class="tok-com"># Plugin mode: decision only, you run it</span>
+decision = tug.<span class="tok-fn">route</span>(<span class="tok-fn">Turn</span>(
+    text=<span class="tok-str">"draft a tweet"</span>,
+    task_class=<span class="tok-str">"drafting"</span>,
+))
+
+<span class="tok-com"># Driver mode: route + execute end-to-end</span>
+result = tug.<span class="tok-fn">execute</span>(<span class="tok-fn">Turn</span>(
+    text=<span class="tok-str">"research the harness thesis"</span>,
+    task_class=<span class="tok-str">"research"</span>,
+))</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="container">
+    <h2>Where Tugboat sits.</h2>
+    <p class="sub">
+      Three-layer stack. Tugboat is the middle layer — the one most production agents have,
+      but rarely name. Making it explicit is what lets you audit, diff, and eval it.
+    </p>
+    <div class="stack">
+      <div class="layer">
+        <div class="title">Knowledge Layer</div>
+        <h4>what the agent knows</h4>
+        <p>identity · memory · skills · world-state · RAG · graphs</p>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="layer routing">
+        <div class="title">Routing Layer · Tugboat</div>
+        <h4>what it decides to do this turn</h4>
+        <p>memory · subagent · skill · model</p>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="layer">
+        <div class="title">Harness / Execution Layer</div>
+        <h4>how it actually runs</h4>
+        <p>prompt assembly · tool calls · ReAct loop · retries</p>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="layer">
+        <div class="title">Model</div>
+        <h4>the LLM itself</h4>
+        <p>fixed across evals; the point is you change everything <em>above</em> it</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="container">
+    <h2>Why Tugboat and not an existing framework.</h2>
+    <div class="reasons">
+      <div class="reason">
+        <div class="num">1</div>
+        <h4>Tiny.</h4>
+        <p>~1,200 lines of stdlib Python. Zero dependencies. You can read the whole thing in an hour.</p>
+      </div>
+      <div class="reason">
+        <div class="num">2</div>
+        <h4>Deterministic.</h4>
+        <p><code>route()</code> is pure. Same (turn, policy) → same decision. That's what makes evals actually measure something.</p>
+      </div>
+      <div class="reason">
+        <div class="num">3</div>
+        <h4>Plugin-shaped.</h4>
+        <p>Drop it into any harness as a decision function and ignore <code>execute()</code> entirely. It wraps; it does not replace.</p>
+      </div>
+      <div class="reason">
+        <div class="num">4</div>
+        <h4>Policy as data.</h4>
+        <p>The router is a markdown file, not a code path. Diff it. Version it. Hand it to a non-engineer.</p>
+      </div>
+      <div class="reason">
+        <div class="num">5</div>
+        <h4>Subagent-first.</h4>
+        <p>The one thing every harness post-mortem cites as the lever is subagent orchestration. Tugboat makes it the point.</p>
+      </div>
+      <div class="reason">
+        <div class="num">6</div>
+        <h4>OODA built in.</h4>
+        <p>Log every turn. Mine patterns offline. Emit <em>proposed</em> policy edits as markdown diffs for a human to accept.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container" style="text-align:center;">
+    <h2>Install in one line.</h2>
+    <p class="sub" style="margin: 0 auto 24px;">No pip install. No virtualenv. Python 3.10+ and a terminal.</p>
+    <div style="max-width:600px; margin:0 auto;">
+      <div class="code-card">
+        <div class="filebar"><div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><span>terminal</span></div>
+<pre><span class="tok-com">$</span> git clone https://github.com/atxgreene/tugboat
+<span class="tok-com">$</span> cd tugboat
+<span class="tok-com">$</span> python -m unittest discover tests    <span class="tok-com"># 34 tests, &lt; 30ms</span>
+<span class="tok-com">$</span> python examples/basic_usage.py        <span class="tok-com"># end-to-end demo</span></pre>
+      </div>
+    </div>
+    <div class="cta-row" style="margin-top: 32px;">
+      <a class="btn btn-primary" href="https://github.com/atxgreene/tugboat">View on GitHub →</a>
+      <a class="btn btn-secondary" href="https://github.com/atxgreene/tugboat/blob/main/docs/architecture.md">Read the architecture doc</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>
+      Built by <a href="https://github.com/atxgreene">Austin Greene</a> for the openclaws fleet.
+      <br/>BEN is the Navigator. Tugboat is his boat.
+    </p>
+    <p class="marks">MIT licensed · stdlib only · © 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
